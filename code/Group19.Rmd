@@ -1,0 +1,261 @@
+---
+title: "Group19"
+author: ""
+date: ""
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(aTSA)
+library(TSA)
+library(tseries)
+```
+
+
+#   AQI
+```{r}
+aqi <- read.csv("AQI.csv")$AQI
+
+weekly_aqi <- c()
+for (i in seq(1,length(aqi),by=7)){
+  weekly_aqi <- c(weekly_aqi, max(aqi[i:i+6]))
+}
+
+length(weekly_aqi)
+
+plot(weekly_aqi,type='l', xaxt = "n", xlab="Weeks", ylab="Weekly AQI")
+week <- c(paste(rep(2020,52),".",seq(1,52),sep = ""),
+          paste(rep(2021,48),".",seq(1,48),sep = ""))
+axis(1,at = 1:100,labels = week)
+
+adf.test(weekly_aqi) #non-stationary
+kpss.test(weekly_aqi) #stationary
+
+BoxCox.ar(weekly_aqi) #log
+
+adf.test(log(weekly_aqi)) #non-stationary
+kpss.test(log(weekly_aqi))#stationary
+
+plot(log(weekly_aqi),type='l', xaxt = "n", xlab="Weeks", ylab="log (Weekly AQI)")
+axis(1,at = 1:100,labels = week)
+
+acf(log(weekly_aqi), lag=100) #MA(3)
+pacf(log(weekly_aqi), lag=100) #AR(2)
+eacf(log(weekly_aqi)) #ARMA(1,1)
+```
+
+## MA(3)
+```{r}
+# MA(3)
+aqi_ma3 <- arima(log(weekly_aqi), order = c(0,0,3))
+aqi_ma3_res <- residuals(aqi_ma3)
+acf(aqi_ma3_res, lag=100)
+
+Box.test(aqi_ma3_res, lag = 15,type = "Ljung") #pass
+
+#par(mfrow=c(3,1))
+plot(aqi_ma3_res, type = 'l') 
+hist(aqi_ma3_res)
+qqnorm(aqi_ma3_res); qqline(aqi_ma3_res)
+
+t.test(aqi_ma3_res) # mean=0
+shapiro.test(aqi_ma3_res) # not normal
+jarque.bera.test(aqi_ma3_res) # normal
+
+aqi_ma3$aic
+BIC(aqi_ma3)
+```
+
+## AR(2) this one !!!
+```{r}
+# AR(2) this one !!!
+aqi_ar2 <- arima(log(weekly_aqi), order = c(2,0,0))
+aqi_ar2_res <- residuals(aqi_ar2)
+acf(aqi_ar2_res, lag=100)
+
+Box.test(aqi_ar2_res, lag = 15,type = "Ljung") #pass
+
+#par(mfrow=c(3,1))
+plot(aqi_ar2_res, type = 'l') 
+hist(aqi_ar2_res) 
+qqnorm(aqi_ar2_res); qqline(aqi_ar2_res)
+
+t.test(aqi_ar2_res) # mean=0
+shapiro.test(aqi_ar2_res) # not normal
+jarque.bera.test(aqi_ar2_res) # normal
+
+aqi_ar2$aic
+BIC(aqi_ar2)
+
+aqi_ar2
+```
+
+
+## ARMA(1,1)
+```{r}
+# ARMA(1,1)
+aqi_arma11 <- arima(log(weekly_aqi), order = c(1,0,1))
+aqi_arma11_res <- residuals(aqi_arma11)
+acf(aqi_arma11_res, lag=100)
+
+Box.test(aqi_arma11_res, lag = 15,type = "Ljung") #pass
+
+#par(mfrow=c(3,1))
+plot(aqi_arma11_res, type = 'l') 
+hist(aqi_arma11_res) 
+qqnorm(aqi_arma11_res); qqline(aqi_arma11_res)
+
+t.test(aqi_arma11_res) # mean=0
+shapiro.test(aqi_arma11_res) # not normal
+jarque.bera.test(aqi_arma11_res) # normal
+
+aqi_arma11$aic
+BIC(aqi_arma11)
+```
+
+#   Electricity
+```{r}
+elec <- read.csv("Elec.csv")$Elec
+
+weekly_elec <- c()
+for (i in seq(1,length(elec),by=7)){
+  weekly_elec <- c(weekly_elec, mean(elec[i:i+6]))
+}
+
+plot(weekly_elec,type='l', xaxt = "n", xlab="Weeks", ylab="Weekly Electricity")
+axis(1,at = 1:100,labels = week)
+
+adf.test(weekly_elec) #non-stationary
+kpss.test(weekly_elec) #stationary
+
+BoxCox.ar(weekly_elec, lambda = seq(-1,3,0.01)) #sqrt
+
+adf.test(sqrt(weekly_elec)) #non-stationary
+kpss.test(sqrt(weekly_elec)) #stationary
+
+plot(sqrt(weekly_elec),type='l', xaxt = "n", xlab="Weeks", ylab="sqrt (Weekly Electricity)")
+axis(1,at = 1:100,labels = week)
+
+acf(sqrt(weekly_elec), lag=100)
+pacf(sqrt(weekly_elec), lag=100) #AR(1)
+eacf(sqrt(weekly_elec)) #AR(1)
+```
+
+## AR(1)
+```{r}
+# AR(1) this one !!!
+elec_ar1 <- arima(sqrt(weekly_elec), order = c(1,0,0))
+elec_ar1_res <- residuals(elec_ar1)
+acf(elec_ar1_res, lag=100)
+
+#par(mfrow=c(3,1))
+plot(elec_ar1_res, type = 'l') 
+hist(elec_ar1_res) 
+qqnorm(elec_ar1_res); qqline(elec_ar1_res)
+
+t.test(elec_ar1_res) # mean=0
+shapiro.test(elec_ar1_res) # normal
+
+elec_ar1$aic
+BIC(elec_ar1)
+```
+
+# detect AO, IO
+```{r}
+# aqi_ar2
+# elec_ar1
+detectAO(aqi_ar2)
+detectIO(aqi_ar2)
+detectAO(elec_ar1) #58
+detectIO(elec_ar1) #58
+```
+## fit AO
+```{r}
+elec_ar1_m2 <- arimax(sqrt(weekly_elec),order=c(1,0,0),
+                      xtransf=data.frame(AO=1*(seq(sqrt(weekly_elec))==58)),
+                      transfer=list(c(0,0)), method='ML')
+
+elec_ar1_m2
+
+elec_ar1_m2_res <- residuals(elec_ar1_m2)
+acf(elec_ar1_m2_res, lag=100)
+
+plot(elec_ar1_m2_res, type = 'l') 
+hist(elec_ar1_m2_res) 
+qqnorm(elec_ar1_m2_res); qqline(elec_ar1_m2_res)
+
+t.test(elec_ar1_m2_res) # mean=0
+shapiro.test(elec_ar1_m2_res) # not normal
+jarque.bera.test(elec_ar1_m2_res) # not normal
+
+elec_ar1_m2$aic
+BIC(elec_ar1_m2)
+```
+
+## fit IO
+```{r}
+detectAO(elec_ar1_m2)
+detectIO(elec_ar1_m2) #5
+
+elec_ar1_m3 <- arimax(sqrt(weekly_elec),order=c(1,0,0),
+                      xtransf=data.frame(AO=1*(seq(sqrt(weekly_elec))==58)),
+                      io=c(5),
+                      transfer=list(c(0,0)), method='ML')
+
+elec_ar1_m3
+
+elec_ar1_m3_res <- residuals(elec_ar1_m3)
+acf(elec_ar1_m3_res, lag=100)
+
+plot(elec_ar1_m3_res, type = 'l') 
+hist(elec_ar1_m3_res) 
+qqnorm(elec_ar1_m3_res); qqline(elec_ar1_m3_res)
+
+t.test(elec_ar1_m3_res) # mean=0
+shapiro.test(elec_ar1_m3_res) # normal
+
+elec_ar1_m3$aic
+BIC(elec_ar1_m3)
+
+elec_ar1_m3
+```
+
+# Correlation
+```{r}
+aqi_ar2_res
+elec_ar1_m3_res
+ccf(aqi_ar2_res,elec_ar1_m3_res) # aqi_ar2_res 影響 elec_ar1_m3_res
+
+# e(1): aqi, e(2): elec
+# e(1)t-2 -> e(2)t
+# e(2)t = beta1 * e(1)t-2 
+
+lag_elec <- elec_ar1_m3_res[-(1:2)]
+lag_aqi <- aqi_ar2_res[-((length(aqi_ar2_res)-1):length(aqi_ar2_res))]
+cor_m1 <- lm(lag_elec~lag_aqi)
+summary(cor_m1)
+
+cor_m2 <- lm(lag_elec~lag_aqi-1)
+summary(cor_m2)
+
+res_cor_m2 <- residuals(cor_m2)
+
+plot(res_cor_m2, type = 'l')
+hist(res_cor_m2)
+qqnorm(res_cor_m2); qqline(res_cor_m2)
+acf(res_cor_m2)
+
+t.test(res_cor_m2) # mean=0
+shapiro.test(res_cor_m2) # normal
+
+Rsq=1-var(res_cor_m1)/var(elec)
+Rsq
+```
+
+
