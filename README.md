@@ -7,4 +7,4 @@ Correlation of air pollution and electricity production.
 
 空氣汙染是指一些危害人體健康及周邊環境物質所對大氣層造成的汙染，這些物質可能是氣體（一氧化碳、二氧化碳）、固體或液體懸浮物等，現今環保署利用空氣品質指標(AQI)對空氣品質進行量化，當AQI>100時將對敏感族群有不健康的影響，故本次報告我們將針對「AQI跟發電量兩者的關聯性」進行研究。
 
-[按此](https://github.com/jennyliucl/time-series-analysis/blob/main/presentation/台中市空氣污染與發電量之相關性分析.pdf)閱讀完整專題內文
+[按此](https://jennyliucl.github.io/JennyLiu/project/台中市空氣污染與發電量之相關性分析.pdf)閱讀完整專題內文
